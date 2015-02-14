@@ -6,6 +6,7 @@ To do:
 	- Reset filters. (Could be the first item in lists? Seems like the clean way to do it.)
 	- Sort better? (Unicode and 'The')
 	- Show artist/album on tracks, especially when searching...
+	- MPD interface is buggy when calling it rapidly.
 	- Scrolling inertia is awfully heavy...
 """
 
@@ -37,7 +38,7 @@ def extract_name( track ):
 	elif 'title' in track:
 		return track['title']
 	else:
-		return ''
+		return track['file'].split('/')[-1]	# Should return empty string if split fails.
 
 def format_track( track ):
 	if 'album' in track and 'artist' in track:
