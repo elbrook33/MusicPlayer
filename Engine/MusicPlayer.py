@@ -120,7 +120,7 @@ class MyController( QtCore.QObject ):
 		mpd.next()
 		self.onStateChanged.emit()
 	def getState( self ):
-		return self.status['state']
+		return mpd.status()['state']
 	state = QtCore.Property( str, getState, notify=onStateChanged )
 	
 	# Search (filter)
