@@ -1,32 +1,36 @@
 import QtQuick 1.0
 
 Column {
-	/* Header for controls (eventually) */
+	/* Header for controls */
 	Rectangle {
 		id: topHeader
 		width: tracksView.width
 		height: 32
 		color: '#444'
 		
+		/* Progress bar (background rectangle) */
 		Rectangle {
 			id: progressBar
 			height: topHeader.height
 			width: controller.songProgress * 400
 			color: '#333'
 		}
+		
+		/* Current track name */
 		Text {
 			id: currentTrack
 			text: controller.currentSong
 			font.bold: true
 			color: 'white'
-			anchors.left: parent.left
+			anchors.fill: parent
 			anchors.leftMargin: 10
-			anchors.right: searchBox.left
-			anchors.rightMargin: 10
-			anchors.bottom: parent.bottom
-			height: 18
+			anchors.rightMargin: 401
+			anchors.topMargin: parent.height - 20
+			verticalAlignment: Text.AlignVCenter
 			clip: true
 		}
+		
+		/* Search box */
 		Rectangle {
 			id: searchBox
 			anchors.left: parent.left
@@ -38,12 +42,10 @@ Column {
 			TextInput {
 				id: searchInput
 				color: '#fff'
-				anchors.left: parent.left
+				anchors.fill: parent
 				anchors.leftMargin: 10
-				anchors.right: parent.right
 				anchors.rightMargin: 10
-				anchors.bottom: parent.bottom
-				height: 18
+				anchors.topMargin: parent.height-18
 				focus: true
 				Keys.onReleased: {
 					if( event.key >= Qt.Key_A && event.key <= Qt.Key_Z || event.key == Qt.Key_Backspace ) {
@@ -66,6 +68,8 @@ Column {
 				anchors.bottom: parent.bottom
 				height: 18
 		}	}
+		
+		/* Media controls (previous, play, next) */
 		Row {
 			id: controls
 			anchors.right: parent.right
@@ -73,6 +77,7 @@ Column {
 			anchors.bottom: parent.bottom
 			anchors.bottomMargin: 0
 			spacing: 0
+			/* Previous */
 			Rectangle {
 				id: previous
 				width: 32
@@ -87,6 +92,7 @@ Column {
 					onClicked: {
 						controller.previous()
 			}	}	}
+			/* Play/pause */
 			Rectangle {
 				id: playPause
 				width: 32
@@ -101,6 +107,7 @@ Column {
 					onClicked: {
 						controller.togglePlay()
 			}	}	}
+			/* Next */
 			Rectangle {
 				id: next
 				width: 32
@@ -136,9 +143,8 @@ Column {
 				Text {
 					text: 'Artists'
 					font.bold: true
-					anchors.leftMargin: 10
-					anchors.topMargin: artistsHeader.height - 20
 					anchors.fill: parent
+					anchors.leftMargin: 10
 					verticalAlignment: Text.AlignVCenter
 				}
 				MouseArea {
@@ -177,9 +183,9 @@ Column {
 						height: 20
 						Text {
 							text: model.item
+							anchors.fill: parent
 							anchors.leftMargin: 10
 							anchors.rightMargin: 10
-							anchors.fill: parent
 							verticalAlignment: Text.AlignVCenter
 						}
 						MouseArea {
@@ -207,9 +213,8 @@ Column {
 				Text {
 					text: 'Albums'
 					font.bold: true
-					anchors.leftMargin: 10
-					anchors.topMargin: artistsHeader.height - 20
 					anchors.fill: parent
+					anchors.leftMargin: 10
 					verticalAlignment: Text.AlignVCenter
 				}
 				MouseArea {
@@ -242,9 +247,9 @@ Column {
 						height: 20
 						Text {
 							text: model.item
+							anchors.fill: parent
 							anchors.leftMargin: 10
 							anchors.rightMargin: 10
-							anchors.fill: parent
 							verticalAlignment: Text.AlignVCenter
 						}
 						MouseArea {
@@ -271,9 +276,8 @@ Column {
 			Text {
 				text: 'Tracks'
 				font.bold: true
-				anchors.leftMargin: 10
-				anchors.topMargin: artistsHeader.height - 20
 				anchors.fill: parent
+				anchors.leftMargin: 10
 				verticalAlignment: Text.AlignVCenter
 		}	}
 		/* Divider line */
@@ -301,14 +305,13 @@ Column {
 					height: 20
 					Text {
 						text: model.item
+						anchors.fill: parent
 						anchors.leftMargin: 10
 						anchors.rightMargin: 10
-						anchors.fill: parent
 						verticalAlignment: Text.AlignVCenter
 					}
 					MouseArea {
 						anchors.fill: parent
 						onClicked: {
-							//tracksView.currentIndex = index // only to speed this up
 							controller.itemClicked( 'Track', model.item, model.row )
 }	}	}	}	}	}	}

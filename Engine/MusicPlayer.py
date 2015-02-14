@@ -5,6 +5,7 @@ To do:
 	- Set font and size (or set line height based on system font size).
 	- Reset filters. (Could be the first item in lists? Seems like the clean way to do it.)
 	- Sort better? (Unicode and 'The')
+	- Show artist/album on tracks, especially when searching...
 	- Scrolling inertia is awfully heavy...
 """
 
@@ -12,7 +13,7 @@ To do:
 from mpd import MPDClient
 
 mpd = MPDClient()
-mpd.connect( 'localhost', 6600 )	# Need error handling here
+mpd.connect( 'localhost', 6600 )	# Need error handling here.
 
 # Initialize Qt
 import sys
@@ -50,7 +51,7 @@ def format_track( track ):
 import threading, time
 
 class MyController( QtCore.QObject ):
-	# Keep track of currently playing song. A thread polls MPD every second
+	# Keep track of currently playing song. A thread polls MPD every second.
 	_currentSong = {}
 	appIsDone = False
 	onStateChanged = QtCore.Signal()
@@ -61,20 +62,18 @@ class MyController( QtCore.QObject ):
 			song = mpd.currentsong()
 			if song != self._currentSong:
 				self._currentSong = song
-				self.onStateChanged.emit()	# Triggers QML updates (by QtCore)
-			self.status = mpd.status()
-			if( self.status['state'] == 'play' or self.status['state'] == 'pause' ):
-				self.playProgress.emit()
-			time.sleep( 1 )	# Wait one second
+				self.onStateChanged.emit()	# Triggers QML updates (by QtCore).
+			self.status = mpd.status()		# Save in self to reduce access to MPD.
+			self.playProgress.emit()			# Triggers progress bar to update.
+			time.sleep( 1 )	# Wait one second.
 	
 	def startPolling( self ):
 		thread = threading.Thread( target=self.doPolling )
 		thread.start()
-	
-	def finishUp( self ):	# Thread needs to stop when app closes. Triggered by aboutToQuit
+	def finishUp( self ):	# Stops thread when app closes. Triggered by aboutToQuit.
 		self.appIsDone = True	
 	
-	# Hooks to let QML access current song info
+	# Hooks for QML access to current song info. Triggered by onStateChanged.
 	def private_currentSong( self ):
 		song = mpd.currentsong()
 		return format_track(song)
@@ -82,7 +81,7 @@ class MyController( QtCore.QObject ):
 	def private_songIndex( self ):
 		try:
 			return [format_track(i) for i in tracks].index( self.private_currentSong() )
-			# Need to compare strings because original objects are references, I guess
+			# Need to compare strings because original objects are references.
 		except ValueError:
 			return -1
 	
@@ -92,7 +91,7 @@ class MyController( QtCore.QObject ):
 	# Handle clicks on artist, album and track list items. (These are all triggered in QML.)
 	@QtCore.Slot( str, str, int )
 	def itemClicked( self, type, name, index ):
-		global tracks	# Need to save tracks globally for later playback
+		global tracks	# Need to save tracks (with file info) globally for later playback.
 		if type == 'Artist':
 			tracks = mpd.find( 'AlbumArtist', name )
 			tracksList.replaceData( extract_names(tracks) )
@@ -101,20 +100,20 @@ class MyController( QtCore.QObject ):
 			tracks = mpd.find( 'Album', name )
 			tracksList.replaceData( extract_names(tracks) )
 		elif type == 'Track':
-			mpd.clear()
+			mpd.clear()		# Replace current playlist with artist/album tracks.
 			[ mpd.add( track['file'] ) for track in tracks ]
-			mpd.play( index )
-		self.onStateChanged.emit()	# Updates track list highlighting
+			mpd.play( index )	# Play from clicked track.
+		self.onStateChanged.emit()	# Updates tracks list highlighting.
 	
 	# Media player controls (play, pause, previous and next)
 	@QtCore.Slot()
 	def togglePlay( self ):
 		mpd.pause() if self.getState() == 'play' else mpd.play()
-		self.onStateChanged.emit()	# Updates 'state', so play button becomes pause
+		self.onStateChanged.emit()	# Updates 'state' so play button becomes pause.
 	@QtCore.Slot()
 	def previous( self ):
 		mpd.previous()
-		self.onStateChanged.emit()	# Quicker UI refresh (though still waits for MPD)
+		self.onStateChanged.emit()	# Quicker UI refresh (though still waits for MPD).
 	@QtCore.Slot()
 	def next( self ):
 		mpd.next()
@@ -126,20 +125,20 @@ class MyController( QtCore.QObject ):
 	# Search (filter)
 	@QtCore.Slot( str )
 	def filterLists( self, query ):
-		global tracks
+		global tracks	# Global so filtered tracks list is available for playback.
 		# Reset first with original copies. (This should be in MyListModel.)
 		artistsList.replaceData( self.artistsCopy.list() )
 		albumsList.replaceData( self.albumsCopy.list() )
 		tracks = self.tracksCopy
 		tracksList.replaceData( extract_names( tracks ) )
-		# Do filter
+		# Do the filter
 		artistsList.filter( query )
 		albumsList.filter( query )
 		tracksList.filter( query )
 		tracks = [ i for i in tracks if query.upper() in extract_name(i).upper() ]
 		self.onStateChanged.emit()	# Updates track list highlighting
 	
-	def resetLists( self ):
+	def resetLists( self ):	# Call at start of app.
 		global tracks
 		artistsList.replaceData( mpd.list( 'AlbumArtist' ) )
 		albumsList.replaceData( mpd.list( 'Album' ) )
@@ -150,7 +149,6 @@ class MyController( QtCore.QObject ):
 		self.albumsCopy = MyListModel( albumsList.list() )
 		self.tracksCopy = tracks
 
-	
 	#Progress bar
 	def private_getProgress( self ):
 		times = self.status['time'].split( ':' )
@@ -161,20 +159,20 @@ class MyController( QtCore.QObject ):
 artistsList = MyListModel()	# Qt-compatible object
 albumsList = MyListModel()
 tracksList = MyListModel()
-tracks = []
+root.setContextProperty( 'artistsListModel', artistsList )
+root.setContextProperty( 'albumsListModel', albumsList )
+root.setContextProperty( 'tracksListModel', tracksList )
 
-root.setContextProperty('artistsListModel', artistsList)
-root.setContextProperty('albumsListModel', albumsList)
-root.setContextProperty('tracksListModel', tracksList)
+tracks = []
 
 # Connect and start event responder
 controller = MyController()
 controller.resetLists()
 controller.startPolling()
-root.setContextProperty('controller', controller)
+app.aboutToQuit.connect( controller.finishUp )
+root.setContextProperty( 'controller', controller )
 
 # Start app
 qmlView.setSource( 'MusicPlayer.qml' )
 qmlView.show()
-app.aboutToQuit.connect( controller.finishUp )
 app.exec_()
