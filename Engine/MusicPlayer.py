@@ -2,9 +2,7 @@
 
 """
 To do:
-	- Upload to github?
 	- Set font and size (or set line height based on system font size).
-	- Search (or at least type first letters).
 	- Show time left (align right?) (mpd.status()['time'] returns 'elapsed:duration')
 	- Reset filters. (Could be the first item in lists? Seems like the clean way to do it.)
 	- Sort better? (Unicode and 'The')
@@ -31,38 +29,23 @@ from MusicPlayer_classes import *
 
 # Helper functions
 def extract_names( list ):
-	names = []
-	for track in list:
-		names.append( extract_name( track ) )
-	return names
+	return [ extract_name(track) for track in list if extract_name(track) ]
 
 def extract_name( track ):
 	if 'name' in track:
 		return track['name']
 	elif 'title' in track:
 		return track['title']
+	else:
+		return ''
 
 def format_track( track ):
-	if 'album' in track:
+	if 'album' in track and 'artist' in track:
 		return track['artist'] + " - " + track['album'] + " - " + extract_name(track)
 	elif 'artist' in track:
 		return track['artist'] + " - " + extract_name(track)
 	else:
-		return extract_name(track)
-
-# Set up app
-artists = filter( None, mpd.list( 'AlbumArtist' ) )
-albums = filter( None, mpd.list( 'Album' ) )
-tracks = []	# Start empty. Alternatively: tracks = mpd.search( 'Artist', '' )
-
-# Make accessible from QML
-artistsList = MyListModel( artists )	# Qt-compatible object
-albumsList = MyListModel( albums )
-tracksList = MyListModel( extract_names(tracks) )
-
-root.setContextProperty('artistsListModel', artistsList)
-root.setContextProperty('albumsListModel', albumsList)
-root.setContextProperty('tracksListModel', tracksList)
+		return extract_name(track) if extract_name(track) else '- -'
 
 # Set up event responder
 import threading, time
@@ -78,7 +61,7 @@ class MyController( QtCore.QObject ):
 			song = mpd.currentsong()
 			if song != self._currentSong:
 				self._currentSong = song
-				self.onStateChanged.emit()	# Triggers QML updates (by QtCore settings)
+				self.onStateChanged.emit()	# Triggers QML updates (by QtCore)
 			time.sleep( 1 )	# Wait one second
 	
 	def startPolling( self ):
@@ -91,10 +74,7 @@ class MyController( QtCore.QObject ):
 	# Hooks to let QML access current song info
 	def private_currentSong( self ):
 		song = mpd.currentsong()
-		if 'artist' in song:
-			return format_track(song)
-		else:
-			return '- -'
+		return format_track(song)
 	
 	def private_songIndex( self ):
 		try:
@@ -106,7 +86,7 @@ class MyController( QtCore.QObject ):
 	currentSong = QtCore.Property( str, private_currentSong, notify=onStateChanged )
 	currentSongIndex = QtCore.Property( int, private_songIndex, notify=onStateChanged )
 	
-	# Handle clicks on artist, album and track list items. (These are all triggered from QML.)
+	# Handle clicks on artist, album and track list items. (These are all triggered in QML.)
 	@QtCore.Slot( str, str, int )
 	def itemClicked( self, type, name, index ):
 		global tracks	# Need to save tracks globally for later playback
@@ -127,11 +107,11 @@ class MyController( QtCore.QObject ):
 	@QtCore.Slot()
 	def togglePlay( self ):
 		mpd.pause() if self.getState() == 'play' else mpd.play()
-		self.onStateChanged.emit()	# Updates 'state', so play button becomes pause etc.
+		self.onStateChanged.emit()	# Updates 'state', so play button becomes pause
 	@QtCore.Slot()
 	def previous( self ):
 		mpd.previous()
-		self.onStateChanged.emit()	# Makes UI refresh quicker (though still waits for MPD)
+		self.onStateChanged.emit()	# Quicker UI refresh (though still waits for MPD)
 	@QtCore.Slot()
 	def next( self ):
 		mpd.next()
@@ -139,9 +119,46 @@ class MyController( QtCore.QObject ):
 	def getState( self ):
 		return mpd.status()['state']
 	state = QtCore.Property( str, getState, notify=onStateChanged )
+	
+	# Search (filter)
+	@QtCore.Slot( str )
+	def filterLists( self, query ):
+		global tracks
+		# Reset first with original copies. (This should be in MyListModel.)
+		artistsList.replaceData( self.artistsCopy.list() )
+		albumsList.replaceData( self.albumsCopy.list() )
+		tracks = self.tracksCopy
+		tracksList.replaceData( extract_names( tracks ) )
+		# Do filter
+		artistsList.filter( query )
+		albumsList.filter( query )
+		tracksList.filter( query )
+		tracks = [ i for i in tracks if query.upper() in extract_name(i).upper() ]
+		self.onStateChanged.emit()	# Updates track list highlighting
+	
+	def resetLists( self ):
+		artistsList.replaceData( mpd.list( 'AlbumArtist' ) )
+		albumsList.replaceData( mpd.list( 'Album' ) )
+		tracks = [ i for i in mpd.search( 'Artist', '' ) if extract_name(i) ]
+		tracksList.replaceData( extract_names( tracks ) )
+		# Save copies for filter searches
+		self.artistsCopy = MyListModel( artistsList.list() )
+		self.albumsCopy = MyListModel( albumsList.list() )
+		self.tracksCopy = tracks
+
+# Set up app (make accessible from QML)
+artistsList = MyListModel()	# Qt-compatible object
+albumsList = MyListModel()
+tracksList = MyListModel()
+tracks = []
+
+root.setContextProperty('artistsListModel', artistsList)
+root.setContextProperty('albumsListModel', albumsList)
+root.setContextProperty('tracksListModel', tracksList)
 
 # Connect and start event responder
 controller = MyController()
+controller.resetLists()
 controller.startPolling()
 root.setContextProperty('controller', controller)
 

@@ -7,9 +7,9 @@ from PySide import QtCore, QtGui, QtDeclarative
 class MyListModel( QtCore.QAbstractListModel ):
 	COLUMNS = ( 'item',  'row' )
 	
-	def __init__( self, list ):
+	def __init__( self, list=[] ):
 		QtCore.QAbstractListModel.__init__(self)
-		self._things = [ MyListWrapper(i) for i in list ]
+		self._things = [ MyListWrapper(i) for i in list if i ]
 		self.setRoleNames( dict( enumerate( MyListModel.COLUMNS ) ) )
 	
 	def rowCount( self, parent=QtCore.QModelIndex() ):
@@ -23,10 +23,16 @@ class MyListModel( QtCore.QAbstractListModel ):
 				return index.row()
 		return None
 	
+	def list( self ):
+		return [ self._things[i].name for i in range( 0, self.rowCount() ) ]
+	
 	def replaceData( self, list ):
 		self.beginResetModel()
 		self._things = [ MyListWrapper(i) for i in list if i ]
 		self.endResetModel()
+		
+	def filter( self, query ):
+		self.replaceData( [ i for i in self.list() if query.upper() in i.upper() ] )
 
 class MyListWrapper( QtCore.QObject ):
 	def __init__( self, item ):

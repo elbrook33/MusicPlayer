@@ -6,7 +6,7 @@ Column {
 		id: topHeader
 		width: tracksView.width
 		height: 32
-		color: '#808080'
+		color: '#444'
 		
 		Text {
 			id: currentTrack
@@ -15,22 +15,61 @@ Column {
 			color: 'white'
 			anchors.left: parent.left
 			anchors.leftMargin: 10
-			anchors.right: controls.left
+			anchors.right: searchBox.left
 			anchors.rightMargin: 10
 			anchors.bottom: parent.bottom
-			height: 20
-			verticalAlignment: Text.AlignVCenter
+			height: 18
 			clip: true
 		}
+		Rectangle {
+			id: searchBox
+			anchors.left: parent.left
+			anchors.leftMargin: 401
+			anchors.right: controls.left
+			anchors.rightMargin: 0
+			height: 32
+			color: '#555'
+			TextInput {
+				id: searchInput
+				color: '#fff'
+				anchors.left: parent.left
+				anchors.leftMargin: 10
+				anchors.right: parent.right
+				anchors.rightMargin: 10
+				anchors.bottom: parent.bottom
+				height: 18
+				focus: true
+				Keys.onReleased: {
+					controller.filterLists( searchInput.text )
+				}
+				cursorDelegate: Component {
+					Rectangle {
+						height: 18
+						width: 7
+						color: '#fff'
+						opacity: 0.5
+			}	}	}
+			Text {
+				id: searchLabel
+				color: '#808080'
+				text: searchInput.text == ''? 'Search...' : ''
+				anchors.left: parent.left
+				anchors.leftMargin: 10
+				anchors.bottom: parent.bottom
+				height: 18
+		}	}
 		Row {
 			id: controls
 			anchors.right: parent.right
-			anchors.rightMargin: 10
-			spacing: 10
+			anchors.rightMargin: 0
+			anchors.bottom: parent.bottom
+			anchors.bottomMargin: 0
+			spacing: 0
 			Rectangle {
 				id: previous
 				width: 32
 				height: 32
+				color: topHeader.color
 				Image {
 					source: '../Icons/previous.png'
 					anchors.fill: parent
@@ -44,6 +83,7 @@ Column {
 				id: playPause
 				width: 32
 				height: 32
+				color: topHeader.color
 				Image {
 					source: controller.state == 'play'? '../Icons/pause.png' : '../Icons/play.png'
 					anchors.fill: parent
@@ -57,6 +97,7 @@ Column {
 				id: next
 				width: 32
 				height: 32
+				color: topHeader.color
 				Image {
 					source: '../Icons/next.png'
 					anchors.fill: parent
@@ -114,7 +155,7 @@ Column {
 				highlight: Rectangle { color: 'lightsteelblue' }
 				highlightMoveDuration: 1
 				currentIndex: -1
-				focus: true
+				//focus: true
 				
 				onCurrentItemChanged: {
 					controller.itemClicked( 'Artist', currentItem.children[0].text, currentIndex )
