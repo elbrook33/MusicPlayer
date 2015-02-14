@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=MusicPlayer
+Comment=A simple music library browser based on MPD
+Exec=musicplayer
+Terminal=false
+Type=Application
+Icon=musicplayer
+Categories=AudioVideo;Player;
+StartupNotify=true
