@@ -37,8 +37,10 @@ def extract_name( track ):
 		return track['name']
 	elif 'title' in track:
 		return track['title']
+	elif 'file' in track:
+		return track['file'].split('/')[-1]
 	else:
-		return track['file'].split('/')[-1]	# Should return empty string if split fails.
+		return ''
 
 def format_track( track ):
 	if 'album' in track and 'artist' in track:
