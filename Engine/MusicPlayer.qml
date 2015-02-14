@@ -8,6 +8,12 @@ Column {
 		height: 32
 		color: '#444'
 		
+		Rectangle {
+			id: progressBar
+			height: topHeader.height
+			width: controller.songProgress * 400
+			color: '#333'
+		}
 		Text {
 			id: currentTrack
 			text: controller.currentSong

@@ -3,7 +3,6 @@
 """
 To do:
 	- Set font and size (or set line height based on system font size).
-	- Show time left (align right?) (mpd.status()['time'] returns 'elapsed:duration')
 	- Reset filters. (Could be the first item in lists? Seems like the clean way to do it.)
 	- Sort better? (Unicode and 'The')
 	- Scrolling inertia is awfully heavy...
@@ -55,6 +54,7 @@ class MyController( QtCore.QObject ):
 	_currentSong = {}
 	appIsDone = False
 	onStateChanged = QtCore.Signal()
+	playProgress = QtCore.Signal()
 	
 	def doPolling( self ):
 		while not self.appIsDone:
@@ -62,6 +62,9 @@ class MyController( QtCore.QObject ):
 			if song != self._currentSong:
 				self._currentSong = song
 				self.onStateChanged.emit()	# Triggers QML updates (by QtCore)
+			self.status = mpd.status()
+			if( self.status['state'] == 'play' or self.status['state'] == 'pause' ):
+				self.playProgress.emit()
 			time.sleep( 1 )	# Wait one second
 	
 	def startPolling( self ):
@@ -117,7 +120,7 @@ class MyController( QtCore.QObject ):
 		mpd.next()
 		self.onStateChanged.emit()
 	def getState( self ):
-		return mpd.status()['state']
+		return self.status['state']
 	state = QtCore.Property( str, getState, notify=onStateChanged )
 	
 	# Search (filter)
@@ -137,6 +140,7 @@ class MyController( QtCore.QObject ):
 		self.onStateChanged.emit()	# Updates track list highlighting
 	
 	def resetLists( self ):
+		global tracks
 		artistsList.replaceData( mpd.list( 'AlbumArtist' ) )
 		albumsList.replaceData( mpd.list( 'Album' ) )
 		tracks = [ i for i in mpd.search( 'Artist', '' ) if extract_name(i) ]
@@ -145,6 +149,13 @@ class MyController( QtCore.QObject ):
 		self.artistsCopy = MyListModel( artistsList.list() )
 		self.albumsCopy = MyListModel( albumsList.list() )
 		self.tracksCopy = tracks
+
+	
+	#Progress bar
+	def private_getProgress( self ):
+		times = self.status['time'].split( ':' )
+		return str( float( times[0] ) / float( times[1] ) )
+	songProgress = QtCore.Property( str, private_getProgress, notify=playProgress )
 
 # Set up app (make accessible from QML)
 artistsList = MyListModel()	# Qt-compatible object
