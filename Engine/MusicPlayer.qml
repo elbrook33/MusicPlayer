@@ -46,7 +46,9 @@ Column {
 				height: 18
 				focus: true
 				Keys.onReleased: {
-					controller.filterLists( searchInput.text )
+					if( event.key >= Qt.Key_A && event.key <= Qt.Key_Z || event.key == Qt.Key_Backspace ) {
+						controller.filterLists( searchInput.text )
+					}
 				}
 				cursorDelegate: Component {
 					Rectangle {
