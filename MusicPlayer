@@ -1,0 +1,5 @@
+#!/bin/bash
+
+mpd
+cd Engine
+python3 MusicPlayer.py
